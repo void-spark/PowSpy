@@ -52,7 +52,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg) {
 
 // Configure the used gpio pins, and setup the interrupt handler
 // Important: Interrupt handler will run on the core which calls this method.
-static void setupGpio() {
+static void gpioSetupTask(void* arg) {
     gpio_config_t io_conf;
     //interrupt of rising edge
     io_conf.intr_type = GPIO_INTR_DISABLE;
@@ -69,21 +69,16 @@ static void setupGpio() {
     //change gpio intrrupt type for one pin
     gpio_set_intr_type(GPIO_INPUT_IO_E, GPIO_INTR_NEGEDGE);
 
-    //create a queue to handle gpio event from isr
-    gpio_evt_queue = xQueueCreate(96, sizeof(uint32_t));
-
-
     //install gpio isr service
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
 
     //hook isr handler for specific gpio pin
     gpio_isr_handler_add(GPIO_INPUT_IO_E, gpio_isr_handler, NULL);
+
+    vTaskDelete(NULL);
 }
 
 static void gpioTask(void* arg) {
-
-    setupGpio();
-
     uint32_t gpioValues = 0;
     uint32_t rs = 0;
     uint32_t rw = 0;
@@ -190,8 +185,14 @@ extern "C" void app_main() {
     mqttWait();
 
 
-    //start gpio task
-    xTaskCreatePinnedToCore(gpioTask, "gpio_task_example", 2048, NULL, 10, NULL, 1);
+    // Create a queue to handle gpio event from isr
+    gpio_evt_queue = xQueueCreate(96, sizeof(uint32_t));
+
+    // Start gpio setup task, sets up the interrupt handler too
+    xTaskCreatePinnedToCore(gpioSetupTask, "gpio_setup_task", 2048, NULL, 10, NULL, 1);
+
+    // Start gpio task
+    xTaskCreatePinnedToCore(gpioTask, "gpio_task", 2048, NULL, 10, NULL, 0);
 
 
 
