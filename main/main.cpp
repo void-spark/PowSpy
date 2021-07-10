@@ -8,6 +8,7 @@
 #include "freertos/event_groups.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "esp_https_ota.h"
 #include "nvs_flash.h"
 #include "lwip/apps/sntp.h"
 #include "wifi_helper.h"
@@ -38,6 +39,25 @@ static const char *TAG = "app";
 #define BIT_TO_POS(value, from, to) (((value & BIT(from)) >> from) << to)
 
 static xQueueHandle gpio_evt_queue = NULL;
+
+static const char* ota_url = "http://raspberrypi.fritz.box:8032/esp32/PowSpy.bin";
+
+static void ota_task(void * pvParameter) {
+    ESP_LOGI(TAG, "Starting OTA update...");
+
+    esp_http_client_config_t config = {
+        .url = ota_url,
+    };
+    esp_err_t ret = esp_https_ota(&config);
+    if (ret == ESP_OK) {
+        esp_restart();
+    } else {
+        ESP_LOGE(TAG, "Firmware Upgrades Failed");
+    }
+    while (1) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
 
 // NOTES:
 // - High level interrupts
@@ -143,9 +163,17 @@ static void gpioTask(void* arg) {
 }
 
 static void subscribeTopics() {
+    subscribeDevTopic("$update");
 }
 
 static void handleMessage(const char* topic1, const char* topic2, const char* topic3, const char* data) {
+    if(
+        strcmp(topic1, "$update") == 0 && 
+        topic2 == NULL && 
+        topic3 == NULL
+    ) {
+        xTaskCreate(&ota_task, "ota_task", 8192, NULL, 5, NULL);
+    }
 }
 
 extern "C" void app_main() {

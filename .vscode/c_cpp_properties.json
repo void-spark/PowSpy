@@ -50,15 +50,16 @@
                 "${workspaceFolder}/sdk/idf/components/xtensa/esp32/include",
                 "${workspaceFolder}/sdk/idf/components/xtensa/include",
                 "${workspaceFolder}/sdk/tools/xtensa-esp32-elf/esp-2020r3-8.4.0/xtensa-esp32-elf/lib/gcc/xtensa-esp32-elf/8.4.0/include",
-                "${workspaceFolder}/sdk/tools/xtensa-esp32-elf/esp-2020r3-8.4.0/xtensa-esp32-elf/xtensa-esp32-elf/include"
+                "${workspaceFolder}/sdk/tools/xtensa-esp32-elf/esp-2020r3-8.4.0/xtensa-esp32-elf/xtensa-esp32-elf/include",
+                "${workspaceFolder}/sdk/idf/components/esp_https_ota/include"
             ],
             "browse": {
                 "path": [
                     "${workspaceFolder}",
                     "${workspaceFolder}/components",
                     "${workspaceFolder}/sdk/idf/components",
-                    "${workspaceFolder}/sdk/tools/xtensa-esp32-elf/esp-2020r2-8.2.0/xtensa-esp32-elf/lib/gcc/xtensa-esp32-elf/8.2.0/include",
-                    "${workspaceFolder}/sdk/tools/xtensa-esp32-elf/esp-2020r2-8.2.0/xtensa-esp32-elf/xtensa-esp32-elf/include/c++/8.2.0"
+                    "${workspaceFolder}/sdk/tools/xtensa-esp32-elf/esp-2020r3-8.4.0/xtensa-esp32-elf/lib/gcc/xtensa-esp32-elf/8.4.0/include",
+                    "${workspaceFolder}/sdk/tools/xtensa-esp32-elf/esp-2020r3-8.4.0/xtensa-esp32-elf/xtensa-esp32-elf/include/c++/8.4.0"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
