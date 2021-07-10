@@ -17,7 +17,6 @@ static const char *TAG = "app";
 
 
 #define GPIO_INPUT_IO_RS    GPIO_NUM_27
-#define GPIO_INPUT_IO_RW    GPIO_NUM_26
 #define GPIO_INPUT_IO_E     GPIO_NUM_25
 
 #define GPIO_INPUT_IO_D4    GPIO_NUM_18
@@ -27,7 +26,6 @@ static const char *TAG = "app";
 
 #define GPIO_INPUT_PIN_SEL ( \
     BIT(GPIO_INPUT_IO_RS) |  \
-    BIT(GPIO_INPUT_IO_RW) |  \
     BIT(GPIO_INPUT_IO_E)  |  \
     BIT(GPIO_INPUT_IO_D4) |  \
     BIT(GPIO_INPUT_IO_D5) |  \
@@ -81,7 +79,6 @@ static void gpioSetupTask(void* arg) {
 static void gpioTask(void* arg) {
     uint32_t gpioValues = 0;
     uint32_t rs = 0;
-    uint32_t rw = 0;
     uint32_t bits = 0;
 
     uint32_t nibble = 0;
@@ -93,12 +90,6 @@ static void gpioTask(void* arg) {
     for(;;) {
         if(xQueueReceive(gpio_evt_queue, &gpioValues, portMAX_DELAY)) {
             rs = (gpioValues & BIT(GPIO_INPUT_IO_RS)) > 0;
-            rw = (gpioValues & BIT(GPIO_INPUT_IO_RW)) > 0;
-
-            if(rw != 0) {
-                // Write: shouldn't happen, but ignore it (the bit is/might be on on bootup)
-                continue;
-            }
 
             bits = 0;
             bits |= BIT_TO_POS(gpioValues, GPIO_INPUT_IO_D7, 3);
