@@ -25,6 +25,8 @@ static const char *TAG = "app";
 #define GPIO_INPUT_IO_D6    GPIO_NUM_22
 #define GPIO_INPUT_IO_D7    GPIO_NUM_23
 
+#define GPIO_OUTPUT_RELAY   GPIO_NUM_4
+
 #define GPIO_INPUT_PIN_SEL ( \
     BIT(GPIO_INPUT_IO_RS) |  \
     BIT(GPIO_INPUT_IO_E)  |  \
@@ -164,6 +166,7 @@ static void gpioTask(void* arg) {
 
 static void subscribeTopics() {
     subscribeDevTopic("$update");
+    subscribeDevTopic("relay/value/set");
 }
 
 static void handleMessage(const char* topic1, const char* topic2, const char* topic3, const char* data) {
@@ -173,6 +176,21 @@ static void handleMessage(const char* topic1, const char* topic2, const char* to
         topic3 == NULL
     ) {
         xTaskCreate(&ota_task, "ota_task", 8192, NULL, 5, NULL);
+    }
+
+    if(
+        strcmp(topic1, "relay") == 0 && 
+        strcmp(topic2, "value") == 0 && 
+        strcmp(topic3, "set") == 0
+    ) {
+        if(strcmp(data, "true") == 0) {
+            gpio_set_level(GPIO_OUTPUT_RELAY, 1);
+            publishNodeProp("relay", "value", "true");
+        }
+        if(strcmp(data, "false") == 0) {
+            gpio_set_level(GPIO_OUTPUT_RELAY, 0);
+            publishNodeProp("relay", "value", "false");
+        }
     }
 }
 
@@ -185,6 +203,10 @@ extern "C" void app_main() {
       ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    // Set relay to safe state (off)
+    gpio_set_direction(GPIO_OUTPUT_RELAY, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_OUTPUT_RELAY, 0);
 
     // Initialize WiFi
     wifiStart();
@@ -203,6 +225,7 @@ extern "C" void app_main() {
 
     mqttWait();
 
+    publishNodeProp("relay", "value", "false");
 
     // Create a queue to handle gpio event from isr
     gpio_evt_queue = xQueueCreate(96, sizeof(uint32_t));
