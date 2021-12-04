@@ -1,1 +1,0 @@
-set SERIAL_PORT=COM3
