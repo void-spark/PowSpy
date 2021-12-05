@@ -219,7 +219,7 @@ extern "C" void app_main() {
     sntp_setservername(0, "pool.ntp.org");
     sntp_init();
 
-    mqttStart(subscribeTopics, handleMessage);
+    mqttStart(subscribeTopics, handleMessage, NULL);
 
     ESP_LOGI(TAG, "Waiting for MQTT");
 
