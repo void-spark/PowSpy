@@ -11,8 +11,7 @@ CONFIG_PARTITION_TABLE_TWO_OTA=y
 # Yes we know what we're doing and want plain HTTP
 CONFIG_OTA_ALLOW_HTTP=y
 
-# Keeping the clock low prevents the ams1117 from overheating (I run from higher voltage)
-CONFIG_ESP32_DEFAULT_CPU_FREQ_80=y
+CONFIG_ESP32_DEFAULT_CPU_FREQ_240=y
 CONFIG_FREERTOS_HZ=100
 
 # We do MQTT stuff (status reports) on the timer, which tends to hit the stack limit (default 2048).

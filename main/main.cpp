@@ -39,6 +39,8 @@ static const char *TAG = "app";
 
 #define ESP_INTR_FLAG_DEFAULT 0
 
+#define BYTES_PER_LINE 16
+
 #define BIT_TO_POS(value, from, to) (((value & BIT(from)) >> from) << to)
 
 static QueueHandle_t gpio_evt_queue = NULL;
@@ -100,15 +102,23 @@ static void gpioSetupTask(void* arg) {
 }
 
 static void gpioTask(void* arg) {
+    uint32_t lastMs = 0;
     uint32_t gpioValues = 0;
     uint32_t rs = 0;
     uint32_t bits = 0;
 
     uint32_t nibble = 0;
 
-    uint32_t pos = 0;
     uint8_t cmd = 0;
-    uint8_t line[16] = {};
+    uint8_t data = 0;
+
+    uint8_t addr = 0;
+    uint8_t line1[40] = {};
+    uint8_t line2[40] = {};
+    for(int pos = 0; pos < 40; pos++) {
+        line1[pos] = 0x20;
+        line2[pos] = 0x20;
+    }
 
     for(;;) {
         if(xQueueReceive(gpio_evt_queue, &gpioValues, portMAX_DELAY)) {
@@ -120,41 +130,62 @@ static void gpioTask(void* arg) {
             bits |= BIT_TO_POS(gpioValues, GPIO_INPUT_IO_D5, 1);
             bits |= BIT_TO_POS(gpioValues, GPIO_INPUT_IO_D4, 0);
 
+            uint32_t nowMs = xTaskGetTickCount() * portTICK_PERIOD_MS;
+            if(lastMs == 0) {
+                lastMs = nowMs;
+            }
+
+            // 200 ms between updates, 150 should be a save limit
+            if(nowMs - lastMs > 150) {
+                char hex_buffer1[2 * BYTES_PER_LINE + 1];
+                for (int i = 0; i < BYTES_PER_LINE; i++) {
+                    sprintf(hex_buffer1 + 2 * i, "%02x", line1[i]);
+                }
+                char hex_buffer2[2 * BYTES_PER_LINE + 1];
+                for (int i = 0; i < BYTES_PER_LINE; i++) {
+                    sprintf(hex_buffer2 + 2 * i, "%02x", line2[i]);
+                }
+                // ESP_LOGI(TAG, "80:%s", hex_buffer1);
+                // ESP_LOGI(TAG, "c0:%s", hex_buffer2);
+
+                char payload[50];
+                snprintf(payload, sizeof(payload), "80:%s", hex_buffer1);
+                publishNodeProp("display", "value", payload);
+
+                snprintf(payload, sizeof(payload), "c0:%s", hex_buffer2);
+                publishNodeProp("display", "value", payload);
+            }
+            lastMs = nowMs;
+
+
             if(rs == 0) {
                 // Command
                 if(nibble == 0 || nibble > 1) {
-                    // Command resets everything, unless it's the second nibble of the first command.
                     nibble = 0;
-                    pos = 0;
                     cmd = 0;
                 }
                 if(nibble == 0) {
                     cmd = bits << 4;
                 } else if(nibble == 1) {
                     cmd |= bits;
+                    if((cmd & 0x80) > 0) {
+                        // Set DDRAM address
+                        addr = cmd & 0x7f;
+                    }
                 }
             } else {
                 // Data
-                if(pos == 16) {
-                    // Ignore too much data
-                    continue;
-                }
-
                 if(nibble % 2 == 0) {
-                    line[pos] = bits << 4;
+                    data = bits << 4;
                 } else {
-                    line[pos] |= bits;
-                    pos++;
-                }
-
-                if(pos == 16) {
-                    char payload[50];
-                    snprintf(payload, sizeof(payload), "%02x:%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", cmd,
-                            line[0],  line[1],  line[2],  line[3],
-                            line[4],  line[5],  line[6],  line[7],
-                            line[8],  line[9],  line[10], line[11],
-                            line[12], line[13], line[14], line[15]);
-                    publishNodeProp("display", "value", payload);
+                    data |= bits;
+                    if(addr < 0x28) {
+                        line1[addr] = data;
+                    }
+                    if(addr > 0x40 && addr < 0x68) {
+                        line2[addr - 0x40] = data;
+                    }
+                    addr++;
                 }
             }
 
