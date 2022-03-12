@@ -7,6 +7,7 @@
 #include "freertos/queue.h"
 #include "freertos/event_groups.h"
 #include "driver/gpio.h"
+#include "soc/gpio_reg.h"
 #include "esp_log.h"
 #include "esp_https_ota.h"
 #include "nvs_flash.h"
@@ -40,7 +41,7 @@ static const char *TAG = "app";
 
 #define BIT_TO_POS(value, from, to) (((value & BIT(from)) >> from) << to)
 
-static xQueueHandle gpio_evt_queue = NULL;
+static QueueHandle_t gpio_evt_queue = NULL;
 
 static const char* ota_url = "http://raspberrypi.fritz.box:8032/esp32/PowSpy.bin";
 
